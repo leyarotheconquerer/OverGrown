@@ -18,14 +18,14 @@ Design
 * Adjacent tiles may be next to any owned tiles
 
 + Tiles have types, grass, weed, neutral, dung, water, and cat tail.
-* A tile has a conviction total of 5
-* Once per tick, tiles "near" the dedicated tile are persuaded toward the dedicated tile's owner
-	* The point value added to these tiles is equal to sqrt(player.expansion)
-* Unless the "near" tile belongs to the opponent
-	* Then the point value subtracted from the opponent and added to the player is sqrt(player.strength)
-* Adjacent tiles between opponents are convinced if player.strength < enemy.strength
-	* The rate of conversion is sqrt(enemy.strength - player.strength)
-* Water cannot be grown on
++ A tile has a conviction total of 5
++ Once per tick, tiles "near" the dedicated tile are persuaded toward the dedicated tile's owner
+	+ The point value added to these tiles is equal to sqrt(player.expansion)
++ Unless the "near" tile belongs to the opponent
+	+ Then the point value subtracted from the opponent and added to the player is sqrt(player.strength)
+- Adjacent tiles between opponents are convinced if player.strength < enemy.strength
+	- The rate of conversion is sqrt(enemy.strength - player.strength)
++ Water cannot be grown on
 
 * Growth points may be dedicated towards expansion or strength, only added to expansion or strength once (suject to play testing)
 * Every 10 tiles in ownership increase growth points by 1

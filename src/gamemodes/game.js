@@ -6,13 +6,19 @@ OverGrown.Game = function() {
 
 	this.tickTimer;
 
+	this.ownershipVal = 5;
 	this.player = {
 		x: 0,
 		y: 0,
 		targetX: 0,
 		targetY: 0,
 		influence: 1,
-		sprite: null
+		sprite: null,
+		growth: {
+			unspent: 1,
+			expansion: 1,
+			strength: 1
+		}
 	};
 
 	this.enemy = {
@@ -20,22 +26,13 @@ OverGrown.Game = function() {
 		y: 0,
 		targetX: 0,
 		targetY: 0,
-		influence: 1
-	};
-
-	this.ownershipVal = 5;
-	this.growthRate = {
-		grass: {
-			growth: 1,
-			expansion: 1,
-			strength: 1
-		},
-		weed: {
-			growth: 1,
+		influence: 1,
+		growth: {
+			unspent: 1,
 			expansion: 1,
 			strength: 1
 		}
-	}
+	};
 };
 
 // Define the member functions of the game state
@@ -101,6 +98,10 @@ OverGrown.Game.prototype = {
 					weed: 0,
 					current: "neutral"
 				};
+				tile.contains = {
+					cattail: false,
+					dung: false
+				}
 			}
 		}
 
@@ -174,12 +175,12 @@ OverGrown.Game.prototype = {
 		for(var i = 0; i < playerNearTiles.length; ++i) {
 			var tile = playerNearTiles[i];
 			if(tile.conviction.current == 'neutral') {
-				tile.conviction.neutral -= Math.floor(Math.sqrt(this.growthRate.grass.expansion));
-				tile.conviction.grass += Math.floor(Math.sqrt(this.growthRate.grass.expansion));
+				tile.conviction.neutral -= Math.floor(Math.sqrt(this.player.growth.expansion));
+				tile.conviction.grass += Math.floor(Math.sqrt(this.player.growth.expansion));
 				updatedTiles.push(tile);
-			} else if (tile.conviction.current == 'weed' && this.growthRate.grass.strength > this.growthRate.weed.strength) {
-				tile.conviction.weed -= Math.floor(Math.sqrt(this.growthRate.grass.strength - this.growthRate.weed.strength));
-				tile.conviction.grass += Math.floor(Math.sqrt(this.growthRate.grass.strength - this.growthRate.weed.strength));
+			} else if (tile.conviction.current == 'weed' && this.player.growth.strength > this.enemy.growth.strength) {
+				tile.conviction.weed -= Math.floor(Math.sqrt(this.player.growth.strength - this.enemy.growth.strength));
+				tile.conviction.grass += Math.floor(Math.sqrt(this.player.growth.strength - this.enemy.growth.strength));
 				updatedTiles.push(tile);
 			}
 		}
@@ -188,12 +189,12 @@ OverGrown.Game.prototype = {
 		for(var i = 0; i < enemyNearTiles.length; ++i) {
 			var tile = enemyNearTiles[i];
 			if(tile.conviction.current == 'neutral') {
-				tile.conviction.neutral -= Math.floor(Math.sqrt(this.growthRate.weed.expansion));
-				tile.conviction.weed += Math.floor(Math.sqrt(this.growthRate.weed.expansion));
+				tile.conviction.neutral -= Math.floor(Math.sqrt(this.enemy.growth.expansion));
+				tile.conviction.weed += Math.floor(Math.sqrt(this.enemy.growth.expansion));
 				updatedTiles.push(tile);
-			} else if (tile.conviction.current == 'weed' && this.growthRate.weed.strength > this.growthRate.grass.strength) {
-				tile.conviction.grass -= Math.floor(Math.sqrt(this.growthRate.weed.strength - this.growthRate.grass.strength));
-				tile.conviction.weed += Math.floor(Math.sqrt(this.growthRate.weed.strength - this.growthRate.grass.strength));
+			} else if (tile.conviction.current == 'weed' && this.enemy.growth.strength > this.player.growth.strength) {
+				tile.conviction.grass -= Math.floor(Math.sqrt(this.enemy.growth.strength - this.player.growth.strength));
+				tile.conviction.weed += Math.floor(Math.sqrt(this.enemy.growth.strength - this.player.growth.strength));
 				updatedTiles.push(tile);
 			}
 		}
