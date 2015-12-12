@@ -14,7 +14,7 @@ Design
 ------
 + Game progresses in one second ticks
 + Player and enemy has one tile called the dedicated tile that may be moved to adjacent tiles
-* This tile has a range which considers tiles "near"
++ This tile has a range which considers tiles "near"
 * Adjacent tiles may be next to any owned tiles
 
 + Tiles have types, grass, weed, neutral, dung, water, and cat tail.

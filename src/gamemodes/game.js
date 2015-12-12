@@ -5,14 +5,16 @@ OverGrown.Game = function() {
 	this.plantLayer;
 	this.playerLayer;
 	this.tiles;
+	this.tickTimer;
+
 	this.player = {
 		x: 0,
 		y: 0,
 		targetX: 0,
-		targetY: 0
+		targetY: 0,
+		influence: 3
 	};
-
-	this.tickTimer;
+	this.nearTiles = [];
 };
 
 // Define the member functions of the game state
@@ -33,13 +35,15 @@ OverGrown.Game.prototype = {
 
 	// Creates objects for this state
 	create: function() {
+		// Construct the level
 		this.constructLevel();
 
-		this.tickTimer = this.game.time.create(false);
-		this.tickTimer.loop(500, this.tick, this);
-
+		// Set up input listeners
 		this.game.input.addMoveCallback(this.updateTarget, this);
 
+		// Set up the tick function
+		this.tickTimer = this.game.time.create(false);
+		this.tickTimer.loop(500, this.tick, this);
 		this.tickTimer.start();
 	},
 
@@ -64,6 +68,13 @@ OverGrown.Game.prototype = {
 				} else {
 					this.tilemap.putTile(this.tiles.water, i, j, this.groundLayer);
 				}
+				this.tilemap.putTile(this.tiles.empty, i, j, this.plantLayer);
+				this.tilemap.getTile(i, j, this.plantLayer).conviction = {
+					neutral: 5,
+					grass: 0,
+					weed: 0,
+					cattail: 0
+				};
 			}
 		}
 	},
@@ -72,9 +83,13 @@ OverGrown.Game.prototype = {
 	update: function() {
 	},
 
+	// Updates game state once per tick
 	tick: function() {
 		console.log("tick")
 		this.updateDedicated();
+
+		// Calculate the near tiles
+		this.nearTiles = this.getNearTiles(this.player.x, this.player.y, this.player.influence);
 	},
 
 	// Updates the target for the dedicated tile
@@ -110,6 +125,28 @@ OverGrown.Game.prototype = {
 				this.tilemap.putTile(this.tiles.dedicated, this.player.x, this.player.y, this.playerLayer);
 			}
 		}
+	},
+
+	// Finds the group of near tiles
+	getNearTiles: function(x, y, rad) {
+		// Determine a region of feasible "near" tiles
+		var xmin = Math.max(0, Math.min(x - rad, this.tilemap.width));
+		var xmax = Math.max(0, Math.min(x + rad, this.tilemap.width));
+		var ymin = Math.max(0, Math.min(y - rad, this.tilemap.width));
+		var ymax = Math.max(0, Math.min(y + rad, this.tilemap.width));
+		var nearTiles = [];
+
+		// Iterate through all possible tiles and determine which tiles are in the radius
+		for(var i = xmin; i <= xmax; ++i) {
+			for(var j = ymin; j <= ymax; ++j) {
+				var temp = Math.sqrt((x-i)*(x-i) + (y-j)*(y-j));
+				if(Math.sqrt((x-i)*(x-i) + (y-j)*(y-j)) <= rad) {
+					nearTiles.push(this.tilemap.getTile(i, j, this.plantLayer));
+				}
+			}
+		}
+
+		return nearTiles;
 	},
 
 	// Called after rest of frame has rendered
