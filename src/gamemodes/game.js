@@ -12,7 +12,8 @@ OverGrown.Game = function() {
 		y: 0,
 		targetX: 0,
 		targetY: 0,
-		influence: 3
+		influence: 3,
+		sprite: null
 	};
 	this.nearTiles = [];
 };
@@ -31,6 +32,8 @@ OverGrown.Game.prototype = {
 			dedicated: 5,
 			empty: 6
 		};
+
+		this.game.rnd.sow([5, 27, 543]);
 	},
 
 	// Creates objects for this state
@@ -40,6 +43,8 @@ OverGrown.Game.prototype = {
 
 		// Set up input listeners
 		this.game.input.addMoveCallback(this.updateTarget, this);
+		this.player.sprite = this.game.add.sprite();
+		this.game.camera.follow(this.player.sprite, Phaser.Camera.FOLLOW_TOPDOWN);
 
 		// Set up the tick function
 		this.tickTimer = this.game.time.create(false);
@@ -59,6 +64,10 @@ OverGrown.Game.prototype = {
 		this.groundLayer.resizeWorld();
 		this.plantLayer = this.tilemap.createBlankLayer('plant', 40, 30, 32, 32);
 		this.playerLayer = this.tilemap.createBlankLayer('player', 40, 30, 32, 32);
+
+		// Random player starting point
+		this.player.x = this.game.rnd.integerInRange(0, this.tilemap.width);
+		this.player.y = this.game.rnd.integerInRange(0, this.tilemap.height);
 
 		// Initialize the ground layer
 		for(var i = 0; i < this.tilemap.width; ++i) {
@@ -94,8 +103,8 @@ OverGrown.Game.prototype = {
 
 	// Updates the target for the dedicated tile
 	updateTarget: function() {
-		var x = this.playerLayer.getTileX(this.game.input.activePointer.x);
-		var y = this.playerLayer.getTileY(this.game.input.activePointer.y);
+		var x = this.playerLayer.getTileX(this.game.input.activePointer.worldX);
+		var y = this.playerLayer.getTileY(this.game.input.activePointer.worldY);
 		if(x != this.player.targetX || y != this.player.targetY) {
 			this.player.targetX = x;
 			this.player.targetY = y;
@@ -122,7 +131,9 @@ OverGrown.Game.prototype = {
 				this.tilemap.putTile(this.tiles.empty, this.player.x, this.player.y, this.playerLayer);
 				this.player.x = nextx;
 				this.player.y = nexty;
-				this.tilemap.putTile(this.tiles.dedicated, this.player.x, this.player.y, this.playerLayer);
+				var tile = this.tilemap.putTile(this.tiles.dedicated, this.player.x, this.player.y, this.playerLayer);
+				var tween = this.game.add.tween(this.player.sprite);
+				tween.to({x: tile.worldX, y: tile.worldY}, 500, 'Linear', true, 0);
 			}
 		}
 	},
