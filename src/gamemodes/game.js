@@ -2,8 +2,6 @@
 OverGrown.Game = function() {
 	this.tilemap;
 	this.groundLayer;
-	this.plantLayer;
-	this.playerLayer;
 	this.tiles;
 
 	this.tickTimer;
@@ -45,6 +43,9 @@ OverGrown.Game.prototype = {
 	// Loads system resources
 	preload: function() {
 		this.game.load.image('tiles', 'assets/Tiles.png');
+		this.game.load.image('grass', 'assets/Grass.png');
+		this.game.load.image('weed', 'assets/Weed.png');
+		this.game.load.image('selector', 'assets/Selector.png');
 		this.tiles = {
 			ground: 0,
 			grass: 1,
@@ -62,7 +63,7 @@ OverGrown.Game.prototype = {
 	create: function() {
 		// Set up input listeners
 		this.game.input.addMoveCallback(this.updateTarget, this);
-		this.player.sprite = this.game.add.sprite();
+		this.player.sprite = this.game.add.sprite(0,0, 'selector');
 		this.game.camera.follow(this.player.sprite, Phaser.Camera.FOLLOW_TOPDOWN);
 
 		// Construct the level
@@ -84,23 +85,20 @@ OverGrown.Game.prototype = {
 		// Add the ground layer
 		this.groundLayer = this.tilemap.create('ground', 40, 30, 32, 32);
 		this.groundLayer.resizeWorld();
-		this.plantLayer = this.tilemap.createBlankLayer('plant', 40, 30, 32, 32);
-		this.playerLayer = this.tilemap.createBlankLayer('player', 40, 30, 32, 32);
 
 		// Initialize the ground layer
 		for(var i = 0; i < this.tilemap.width; ++i) {
 			for(var j = 0; j < this.tilemap.height; ++j) {
+				var tile;
 				if((i + j) % 4 != 0) {
-					this.tilemap.putTile(this.tiles.ground, i, j, this.groundLayer);
+					tile = this.tilemap.putTile(this.tiles.ground, i, j, this.groundLayer);
 				} else {
-					this.tilemap.putTile(this.tiles.water, i, j, this.groundLayer);
+					tile = this.tilemap.putTile(this.tiles.water, i, j, this.groundLayer);
 				}
-				this.tilemap.putTile(this.tiles.empty, i, j, this.plantLayer);
-				this.tilemap.getTile(i, j, this.plantLayer).conviction = {
-					neutral: 5,
+				tile.conviction = {
+					neutral: this.ownershipVal,
 					grass: 0,
 					weed: 0,
-					cattail: 0,
 					current: "neutral"
 				};
 			}
@@ -109,8 +107,11 @@ OverGrown.Game.prototype = {
 		// Random player starting point
 		this.player.x = this.game.rnd.integerInRange(0, this.tilemap.width);
 		this.player.y = this.game.rnd.integerInRange(0, this.tilemap.height);
-		this.tilemap.putTile(this.tiles.grass, this.player.x, this.player.y, this.plantLayer);
-		var tile = this.tilemap.getTile(this.player.x, this.player.y, this.playerLayer, true);
+		var tile = this.tilemap.getTile(this.player.x, this.player.y, this.groundLayer, true);
+		tile.conviction.current = 'grass';
+		tile.conviction.grass = this.ownershipVal;
+		tile.conviction.neutral = 0;
+		tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'grass');
 		this.player.sprite.x = tile.worldX;
 		this.player.sprite.y = tile.worldY;
 	},
@@ -124,13 +125,13 @@ OverGrown.Game.prototype = {
 		console.log("tick")
 		this.updateDedicated();
 		this.updateTiles();
-		console.log("finished tick");
+		this.player.sprite.bringToTop();
 	},
 
 	// Updates the target for the dedicated tile
 	updateTarget: function() {
-		var x = this.playerLayer.getTileX(this.game.input.activePointer.worldX);
-		var y = this.playerLayer.getTileY(this.game.input.activePointer.worldY);
+		var x = this.groundLayer.getTileX(this.game.input.activePointer.worldX);
+		var y = this.groundLayer.getTileY(this.game.input.activePointer.worldY);
 		if(x != this.player.targetX || y != this.player.targetY) {
 			this.player.targetX = x;
 			this.player.targetY = y;
@@ -142,24 +143,23 @@ OverGrown.Game.prototype = {
 		if(this.player.x != this.player.targetX || this.player.y != this.player.targetY) {
 			var nextx = this.player.x;
 			var nexty = this.player.y;
-			if(this.player.x < this.player.targetX && this.player.x < this.playerLayer.width) {
+			if(this.player.x < this.player.targetX && this.player.x < this.groundLayer.width) {
 				nextx = this.player.x + 1;
 			} else if(this.player.x > this.player.targetX && this.player.x > 0) {
 				nextx = this.player.x - 1;
 			}
-			if(this.player.y < this.player.targetY && this.player.y < this.playerLayer.height) {
+			if(this.player.y < this.player.targetY && this.player.y < this.groundLayer.height) {
 				nexty = this.player.y + 1;
 			} else if(this.player.y > this.player.targetY && this.player.y > 0) {
 				nexty = this.player.y - 1;
 			}
 
-			if(this.tilemap.getTile(nextx, nexty, this.plantLayer, true).index == this.tiles.grass) {
-				this.tilemap.putTile(this.tiles.empty, this.player.x, this.player.y, this.playerLayer);
+			var tile = this.tilemap.getTile(nextx, nexty, this.groundLayer, true);
+			if(tile.conviction.current == 'grass') {
 				this.player.x = nextx;
 				this.player.y = nexty;
-				var tile = this.tilemap.putTile(this.tiles.dedicated, this.player.x, this.player.y, this.playerLayer);
 				var tween = this.game.add.tween(this.player.sprite);
-				tween.to({x: tile.worldX, y: tile.worldY}, 500, 'Linear', true, 0);
+				tween.to({x: tile.worldX, y: tile.worldY}, 200, 'Linear', true, 0);
 			}
 		}
 	},
@@ -202,7 +202,7 @@ OverGrown.Game.prototype = {
 		for(var i = 0; i < updatedTiles.length; ++i) {
 			var tile = updatedTiles[i];
 			// Ignore water
-			if(this.tilemap.getTile(tile.x, tile.y, this.groundLayer).index == this.tiles.water) {
+			if(tile.index == this.tiles.water) {
 				continue;
 			}
 			// If neutral tile is convinced by someone
@@ -212,12 +212,12 @@ OverGrown.Game.prototype = {
 					tile.conviction.current = 'grass';
 					tile.conviction.grass = this.ownershipVal;
 					tile.conviction.weed = 0;
-					tile.index = this.tiles.grass;
+					tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'grass');
 				} else if(tile.conviction.weed >= this.ownershipVal) {
 					tile.conviction.weed = 'weed';
 					tile.conviction.grass = 0;
 					tile.conviction.weed = this.ownershipVal;
-					tile.index = this.tiles.weed;
+					tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'weed');
 				}
 				tile.conviction.neutral = 0;
 			// If the grass tile is reduced to 0 conviction
@@ -226,14 +226,16 @@ OverGrown.Game.prototype = {
 				tile.conviction.grass = 0;
 				tile.conviction.weed = this.ownershipVal;
 				tile.conviction.neutral = 0;
-				tile.index = this.tiles.weed;
+				tile.conviction.sprite.kill();
+				tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'weed');
 			// If the weed tile is reduced to 0 conviction
 			} else if (tile.conviction.current == 'weed' && tile.conviction.weed <= 0) {
 				tile.conviction.current = 'grass';
 				tile.conviction.grass = this.ownershipVal;
 				tile.conviction.weed = 0;
 				tile.conviction.neutral = 0;
-				tile.index = this.tiles.grass;
+				tile.conviction.sprite.kill();
+				tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'grass');
 			}
 		}
 	},
@@ -253,7 +255,7 @@ OverGrown.Game.prototype = {
 			for(var j = ymin; j <= ymax; ++j) {
 				var temp = Math.sqrt((x-i)*(x-i) + (y-j)*(y-j));
 				if(Math.sqrt((x-i)*(x-i) + (y-j)*(y-j)) <= rad) {
-					nearTiles.push(this.tilemap.getTile(i, j, this.plantLayer));
+					nearTiles.push(this.tilemap.getTile(i, j, this.groundLayer));
 				}
 			}
 		}
