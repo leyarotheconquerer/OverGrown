@@ -1,10 +1,10 @@
 // Declare the menu state
-LD34.Menu = function() {
+OverGrown.Menu = function() {
 
 };
 
 // Define the member functions of the menu state
-LD34.Menu.prototype = {
+OverGrown.Menu.prototype = {
 	// Loads system resources
 	preload: function() {
 

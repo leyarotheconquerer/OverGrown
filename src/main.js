@@ -5,8 +5,8 @@ var main = function() {
 	game = new Phaser.Game(800, 600, Phaser.Canvas, 'game-chasm');
 
 	// Load the game states
-	game.state.add('Menu', LD34.Menu);
-	game.state.add('Game', LD34.Game);
+	game.state.add('Menu', OverGrown.Menu);
+	game.state.add('Game', OverGrown.Game);
 
 	// Start the menu
 	game.state.start('Menu');
