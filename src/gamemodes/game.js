@@ -1,8 +1,10 @@
 // Declare the game state
 OverGrown.Game = function() {
-	var tilemap;
-	var groundLayer;
-	var plantLayer;
+	this.tilemap;
+	this.groundLayer;
+	this.plantLayer;
+	this.playerLayer;
+	this.tiles;
 };
 
 // Define the member functions of the game state
@@ -10,6 +12,15 @@ OverGrown.Game.prototype = {
 	// Loads system resources
 	preload: function() {
 		this.game.load.image('tiles', 'assets/Tiles.png');
+		this.tiles = {
+			ground: 0,
+			grass: 1,
+			weed: 2,
+			water: 3,
+			dung: 4,
+			dedicated: 5,
+			empty: 6
+		};
 	},
 
 	// Creates objects for this state
@@ -19,21 +30,24 @@ OverGrown.Game.prototype = {
 
 	// Constructs the level
 	constructLevel: function() {
-		// Create an emtpy tile map
-		tilemap = this.game.add.tilemap();
-		tilemap.addTilesetImage('tiles');
+		this.game.stage.backgroundColor = '#ff0000';
+		// Create an empty tile map
+		this.tilemap = this.game.add.tilemap();
+		this.tilemap.addTilesetImage('tiles');
 
 		// Add the ground layer
-		this.groundLayer = tilemap.create('ground', 40, 30, 32, 32);
-		this.plantLayer = tilemap.createBlankLayer('plant', 40, 30, 32, 32);
+		this.groundLayer = this.tilemap.create('ground', 40, 30, 32, 32);
+		this.groundLayer.resizeWorld();
+		this.plantLayer = this.tilemap.createBlankLayer('plant', 40, 30, 32, 32);
+		this.playerLayer = this.tilemap.createBlankLayer('player', 40, 30, 32, 32);
 
 		// Initialize the ground layer
-		for(var i = 0; i < tilemap.width; ++i) {
-			for(var j = 0; j < tilemap.height; ++j) {
-				if((i + j) % 2 == 0) {
-					tilemap.putTile(0, i, j, this.groundLayer);
+		for(var i = 0; i < this.tilemap.width; ++i) {
+			for(var j = 0; j < this.tilemap.height; ++j) {
+				if((i + j) % 4 != 0) {
+					this.tilemap.putTile(this.tiles.ground, i, j, this.groundLayer);
 				} else {
-					tilemap.putTile(3, i, j, this.groundLayer);
+					this.tilemap.putTile(this.tiles.water, i, j, this.groundLayer);
 				}
 			}
 		}
