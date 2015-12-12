@@ -12,12 +12,12 @@ Over Grown is a game in which you play a clump of grass eager to overgrow the ev
 
 Design
 ------
-* Game progresses in one second ticks
-* Player and enemy has one tile called the dedicated tile that may be moved to adjacent tiles
++ Game progresses in one second ticks
++ Player and enemy has one tile called the dedicated tile that may be moved to adjacent tiles
 * This tile has a range which considers tiles "near"
 * Adjacent tiles may be next to any owned tiles
 
-* Tiles have types, grass, weed, neutral, dung, water, and cat tail.
++ Tiles have types, grass, weed, neutral, dung, water, and cat tail.
 * A tile has a conviction total of 5
 * Once per tick, tiles "near" the dedicated tile are persuaded toward the dedicated tile's owner
 	* The point value added to these tiles is equal to sqrt(player.expansion)
