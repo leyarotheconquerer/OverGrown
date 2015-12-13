@@ -16,11 +16,13 @@ OverGrown.Game = function() {
 		targetY: 0,
 		sprite: null,
 		tileCount: 1,
+		identity: 'grass',
 		growth: {
 			unspent: 1,
 			expansion: 1,
 			strength: 1,
-			influence: 1
+			influence: 1,
+			cattail: 0
 		}
 	};
 
@@ -30,11 +32,13 @@ OverGrown.Game = function() {
 		targetX: 0,
 		targetY: 0,
 		tileCount: 1,
+		identity: 'weed',
 		growth: {
 			unspent: 1,
 			expansion: 1,
 			strength: 1,
-			influence: 1
+			influence: 1,
+			cattail: 0
 		}
 	};
 };
@@ -211,9 +215,14 @@ OverGrown.Game.prototype = {
 			}
 		}
 
+		this.updateOwnership(updatedTiles);
+	},
+
+	// Updates the ownership of tiles based on their convictions
+	updateOwnership: function(tiles) {
 		// Determine ownership of tile based on conviction
-		for(var i = 0; i < updatedTiles.length; ++i) {
-			var tile = updatedTiles[i];
+		for(var i = 0; i < tiles.length; ++i) {
+			var tile = tiles[i];
 			// Ignore water
 			if(tile.index == this.tiles.water) {
 				continue;
@@ -289,9 +298,19 @@ OverGrown.Game.prototype = {
 					}
 				}
 
-				// If the tile was dung
+				// If the tile was dung, it's worth 1 more
 				if(tile.contains.dung) {
 					growthAmount++;
+				}
+
+				// If the tile was a cattail, store a charge
+				if(tile.contains.cattail) {
+					tile.contains.cattail = false;
+					if(tile.conviction.current = 'grass') {
+						this.player.growth.cattail++;
+					} else if (tile.conviction.current = 'weed') {
+						this.enemy.growth.cattail++;
+					}
 				}
 
 				// NOTE: Because the bonuses to the tile up to this point are universal,
@@ -340,7 +359,8 @@ OverGrown.Game.prototype = {
 				// Display total gain
 				if(totalGain != 0) {
 					var text = this.game.add.text(tile.worldX, tile.worldY + this.tilemap.tileHeight, (totalGain > 0 ? "+" : "") + totalGain,  {
-						font: 'bold 18pt Arial'
+						font: 'bold 18pt Arial',
+						fill: '#ff000'
 					});
 					text.bringToTop();
 					text.scale.y = 0;
@@ -354,6 +374,29 @@ OverGrown.Game.prototype = {
 				}
 			}
 		}
+	},
+
+	// Resolves a cattail attack
+	resolveCattail: function(entity) {
+		var nearTiles = this.getNearTiles(entity.x, entity.y, entity.growth.influence);
+		for(var i = 0; i < nearTiles.length; ++i) {
+			var tile = nearTiles[i];
+			if(tile.index == this.tiles.water) {
+				continue;
+			}
+			if(entity.identity == 'grass') {
+				tile.conviction.grass = this.ownershipVal;
+				tile.conviction.weed = 0;
+				tile.conviction.neutral = 0;
+			} else if(entity.identity == 'weed') {
+				tile.conviction.weed = this.ownershipVal;
+				tile.conviction.grass = 0;
+				tile.conviction.neutral = 0;
+			}
+		}
+
+		this.updateOwnership(nearTiles);
+		entity.growth.cattail--;
 	},
 
 	// Calculates a group of tiles within a radius around given coordinates
@@ -383,6 +426,10 @@ OverGrown.Game.prototype = {
 	// Interprets left mouse clicks as commands for expansion
 	onLeftMouseDown: function(pointer) {
 		this.changeExpansion(this.player.growth, 1);
+		// Resolve cattail if any charges remain
+		if(this.player.growth.cattail > 0) {
+			this.resolveCattail(this.player);
+		}
 		this.leftTimer.loop(200, this.onLeftMouseDown, this);
 		this.leftTimer.start();
 	},
@@ -439,11 +486,13 @@ OverGrown.Game.prototype = {
 	render: function() {
 		this.game.debug.text(
 			"Player: Tile Count=" + this.player.tileCount +
+			" Cattail=" + this.player.growth.cattail +
 			" Expansion=" + this.player.growth.expansion +
 			" Strength=" + this.player.growth.strength +
 			" Unspent=" + this.player.growth.unspent, 10, 20);
 		this.game.debug.text(
 			"Enemy: Tile Count=" + this.enemy.tileCount +
+			" Cattail=" + this.enemy.growth.cattail +
 			" Expansion=" + this.enemy.growth.expansion +
 			" Strength=" + this.enemy.growth.strength +
 			" Unspent=" + this.enemy.growth.unspent, 10, 40);

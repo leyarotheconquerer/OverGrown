@@ -32,7 +32,8 @@ Design
 + Every dung tile increases growth points by 1
 + Every tile adjacent to water increases growth points by 1
 
-* Cat tails taken into ownership provide a one time use bonus
-* This bonus is used on command
-	* With it, a player may immediately take up 10 adjacent tiles
-	* Or the player may immediately steal 3 adjacent enemy tiles
++ Cat tails taken into ownership provide a one time use bonus
++ This bonus is used on command
+	+ With it, a player immediately gains all tiles "near" the dedicated tile
+	- With it, a player may immediately take up 10 adjacent tiles
+	- Or the player may immediately steal 3 adjacent enemy tiles
