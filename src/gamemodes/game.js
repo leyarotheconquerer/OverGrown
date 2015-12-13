@@ -273,7 +273,6 @@ OverGrown.Game.prototype = {
 			this.enemy.targetY,
 			'weed'
 		);
-		console.log(this.enemy.targetWaitCounter + " : " + this.enemy.x + ", " + this.enemy.y + " -> " + nextPos.x + ", " + nextPos.y + " (" + this.enemy.targetX + ", " + this.enemy.targetY + ")");
 		if(this.enemy.x == nextPos.x && this.enemy.y == nextPos.y) {
 			this.enemy.waitCounter--;
 		} else {
@@ -610,7 +609,7 @@ OverGrown.Game.prototype = {
 
 				// Have the enemy automatically apply unspent growth points, in a balanced approach
 				if(this.enemy.growth.unspent != 0) {
-					var points = Math.floor(this.enemy.growth.unspent / 2);
+					var points = Math.abs(Math.floor(this.enemy.growth.unspent / 2));
 					this.changeStrength(this.enemy.growth, points);
 					this.changeExpansion(this.enemy.growth, points);
 				}
