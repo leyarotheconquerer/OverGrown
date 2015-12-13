@@ -5,6 +5,8 @@ OverGrown.Game = function() {
 	this.tiles;
 
 	this.tickTimer;
+	this.leftTimer;
+	this.rightTimer;
 
 	this.ownershipVal = 5;
 	this.player = {
@@ -12,12 +14,13 @@ OverGrown.Game = function() {
 		y: 0,
 		targetX: 0,
 		targetY: 0,
-		influence: 1,
 		sprite: null,
+		tileCount: 1,
 		growth: {
 			unspent: 1,
 			expansion: 1,
-			strength: 1
+			strength: 1,
+			influence: 1
 		}
 	};
 
@@ -26,11 +29,12 @@ OverGrown.Game = function() {
 		y: 0,
 		targetX: 0,
 		targetY: 0,
-		influence: 1,
+		tileCount: 1,
 		growth: {
 			unspent: 1,
 			expansion: 1,
-			strength: 1
+			strength: 1,
+			influence: 1
 		}
 	};
 };
@@ -53,13 +57,18 @@ OverGrown.Game.prototype = {
 			empty: 6
 		};
 
-		this.game.rnd.sow([5, 27, 543]);
+		this.game.rnd.sow([27, 543, 5]);
 	},
 
 	// Creates objects for this state
 	create: function() {
 		// Set up input listeners
 		this.game.input.addMoveCallback(this.updateTarget, this);
+		console.log(this.game.input.activePointer.leftButton);
+		this.game.input.activePointer.leftButton.onDown.add(this.onLeftMouseDown, this);
+		this.game.input.activePointer.leftButton.onUp.add(this.onLeftMouseUp, this);
+		this.game.input.activePointer.rightButton.onDown.add(this.onRightMouseDown, this);
+		this.game.input.activePointer.rightButton.onUp.add(this.onRightMouseUp, this);
 		this.player.sprite = this.game.add.sprite(0,0, 'selector');
 		this.game.camera.follow(this.player.sprite, Phaser.Camera.FOLLOW_TOPDOWN);
 
@@ -70,6 +79,9 @@ OverGrown.Game.prototype = {
 		this.tickTimer = this.game.time.create(false);
 		this.tickTimer.loop(500, this.tick, this);
 		this.tickTimer.start();
+
+		this.leftTimer = this.game.time.create(false);
+		this.rightTimer = this.game.time.create(false);
 	},
 
 	// Constructs the level
@@ -167,8 +179,8 @@ OverGrown.Game.prototype = {
 
 	// Updates the properties of all tiles
 	updateTiles: function() {
-		var playerNearTiles = this.getNearTiles(this.player.x, this.player.y, this.player.influence);
-		var enemyNearTiles = this.getNearTiles(this.enemy.x, this.enemy.y, this.enemy.influence);
+		var playerNearTiles = this.getNearTiles(this.player.x, this.player.y, this.player.growth.influence);
+		var enemyNearTiles = this.getNearTiles(this.enemy.x, this.enemy.y, this.enemy.growth.influence);
 		var updatedTiles = [];
 
 		// Calculate conviction for all "near" tiles to the player
@@ -206,6 +218,8 @@ OverGrown.Game.prototype = {
 			if(tile.index == this.tiles.water) {
 				continue;
 			}
+			var taken = false;
+			var changeOwner = false;
 			// If neutral tile is convinced by someone
 			if(tile.conviction.current == 'neutral' && tile.conviction.neutral <= 0) {
 				// Assign it to the first player to get ownership
@@ -214,13 +228,16 @@ OverGrown.Game.prototype = {
 					tile.conviction.grass = this.ownershipVal;
 					tile.conviction.weed = 0;
 					tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'grass');
+					this.player.tileCount++;
 				} else if(tile.conviction.weed >= this.ownershipVal) {
 					tile.conviction.weed = 'weed';
 					tile.conviction.grass = 0;
 					tile.conviction.weed = this.ownershipVal;
 					tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'weed');
+					this.enemy.tileCount++;
 				}
 				tile.conviction.neutral = 0;
+				taken = true; changeOwner = false;
 			// If the grass tile is reduced to 0 conviction
 			} else if (tile.conviction.current == 'grass' && tile.conviction.grass <= 0) {
 				tile.conviction.current = 'weed';
@@ -229,6 +246,8 @@ OverGrown.Game.prototype = {
 				tile.conviction.neutral = 0;
 				tile.conviction.sprite.kill();
 				tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'weed');
+				this.enemy.tileCount++;
+				taken = true; changeOwner = true;
 			// If the weed tile is reduced to 0 conviction
 			} else if (tile.conviction.current == 'weed' && tile.conviction.weed <= 0) {
 				tile.conviction.current = 'grass';
@@ -237,11 +256,107 @@ OverGrown.Game.prototype = {
 				tile.conviction.neutral = 0;
 				tile.conviction.sprite.kill();
 				tile.conviction.sprite = this.game.add.sprite(tile.worldX, tile.worldY, 'grass');
+				this.player.tileCount++;
+				taken = true; changeOwner = true;
+			}
+
+			// If the tile was taken
+			if(taken) {
+				var growthAmount = 0;
+				var totalGain = 0;
+				var adjacentTiles = [];
+				{
+					var adjTile = this.tilemap.getTile(tile.x-1, tile.y, this.groundLayer, true);
+					if(adjTile != null) { adjacentTiles.push(adjTile); };
+				}
+				{
+					var adjTile = this.tilemap.getTile(tile.x+1, tile.y, this.groundLayer, true);
+					if(adjTile != null) { adjacentTiles.push(adjTile); };
+				}
+				{
+					var adjTile = this.tilemap.getTile(tile.x, tile.y-1, this.groundLayer, true);
+					if(adjTile != null) { adjacentTiles.push(adjTile); };
+				}
+				{
+					var adjTile = this.tilemap.getTile(tile.x, tile.y+1, this.groundLayer, true);
+					if(adjTile != null) { adjacentTiles.push(adjTile); };
+				}
+
+				for(var i = 0; i < adjacentTiles.length; ++i) {
+					if(adjacentTiles[i].index == this.tiles.water) {
+						growthAmount++;
+						break;
+					}
+				}
+
+				// If the tile was dung
+				if(tile.contains.dung) {
+					growthAmount++;
+				}
+
+				// NOTE: Because the bonuses to the tile up to this point are universal,
+				//       they must be added and removed equally from each player
+				// Add growth points if the tile was taken
+				if(tile.conviction.current = 'grass') {
+					this.player.growth.unspent += growthAmount;
+					totalGain = growthAmount;
+				} else if(tile.conviction.current = 'weed') {
+					this.enemy.growth.unspent += growthAmount;
+				}
+
+				// Remove growth points if the tile was stolen
+				if(changeOwner) {
+					if(tile.conviction.current = 'weed') {
+						this.player.growth.unspent -= growthAmount;
+						totalGain = -growthAmount;
+					} else if(tile.conviction.current = 'grass') {
+						this.enemy.growth.unspent -= growthAmount;
+					}
+				}
+
+				// NOTE: The following points are player specific, so they can't be blindly applied or removed
+				// If the tile put a player up to a multiple of 10
+				if(tile.conviction.current == 'grass' && this.player.tileCount % 10 == 0) {
+					this.player.growth.unspent++;
+					totalGain++;
+				} else if(tile.conviction.current == 'weed' && this.enemy.tileCount % 10 == 0) {
+					this.enemy.growth.unspent++;
+				}
+
+				// If the tile pulled a player below a multiple of 10
+				if(changeOwner && tile.conviction.current == 'grass' && this.enemy.tileCount % 10 == 9) {
+					this.enemy.growth.unspent--;
+				} else if(changeOwner && tile.conviction.current == 'weed' && this.player.tileCount % 10 == 9) {
+					this.player.growth.unspent--;
+					totalGain--;
+				}
+
+				// Have the enemy automatically apply unspent growth points, in a balanced approach
+				if(this.enemy.growth.unspent != 0) {
+					this.changeStrength(this.enemy.growth, Math.floor(this.enemy.growth.unspent / 2));
+					this.changeExpansion(this.enemy.growth, Math.floor(this.enemy.growth.unspent / 2));
+				}
+
+				// Display total gain
+				if(totalGain != 0) {
+					var text = this.game.add.text(tile.worldX, tile.worldY + this.tilemap.tileHeight, (totalGain > 0 ? "+" : "") + totalGain,  {
+						font: 'bold 18pt Arial'
+					});
+					text.bringToTop();
+					text.scale.y = 0;
+					text.anchor.y = 1;
+					var tween = this.game.add.tween(text.scale);
+					tween.to({x: 1, y: 1}, 1000, Phaser.Easing.Quadratic.Out);
+					tween.start();
+					var timer = this.game.time.create();
+					timer.add(1000, function(thingy) {thingy.kill();}, this, text);
+					timer.start();
+				}
 			}
 		}
 	},
 
-	// Recalculates the group of near tiles
+	// Calculates a group of tiles within a radius around given coordinates
 	getNearTiles: function(x, y, rad) {
 		// Determine a region of feasible "near" tiles
 		var xmin = Math.max(0, Math.min(x - rad, this.tilemap.width));
@@ -256,7 +371,8 @@ OverGrown.Game.prototype = {
 			for(var j = ymin; j <= ymax; ++j) {
 				var temp = Math.sqrt((x-i)*(x-i) + (y-j)*(y-j));
 				if(Math.sqrt((x-i)*(x-i) + (y-j)*(y-j)) <= rad) {
-					nearTiles.push(this.tilemap.getTile(i, j, this.groundLayer));
+					var tile = this.tilemap.getTile(i, j, this.groundLayer);
+					if(tile != null) { nearTiles.push(tile); }
 				}
 			}
 		}
@@ -264,9 +380,72 @@ OverGrown.Game.prototype = {
 		return nearTiles;
 	},
 
+	// Interprets left mouse clicks as commands for expansion
+	onLeftMouseDown: function(pointer) {
+		this.changeExpansion(this.player.growth, 1);
+		this.leftTimer.loop(200, this.onLeftMouseDown, this);
+		this.leftTimer.start();
+	},
+
+	// Interprets right mouse clicks as commands for strength
+	onRightMouseDown: function(pointer) {
+		this.changeStrength(this.player.growth, 1);
+		this.rightTimer.loop(200, this.onRightMouseDown, this);
+		this.rightTimer.start();
+	},
+
+	// Stops using unused for expansion
+	onLeftMouseUp: function(pointer) {
+		this.leftTimer.stop();
+	},
+
+	// Stops using unused for strength
+	onRightMouseUp: function(pointer) {
+		this.rightTimer.stop();
+	},
+
+	// Increases expansion using the unspent growth
+	changeExpansion: function(growth, amount) {
+		if(growth.unspent > 0) {
+			growth.expansion += amount;
+			growth.unspent -= amount;
+		} else if(growth.unspent < 0) {
+			growth.expansion -= amount;
+			growth.unspent += amount;
+		}
+
+		// Grow influence as expansion increases
+		if(growth.expansion > 100) {
+			growth.influence = 4;
+		} else if(growth.expansion > 50) {
+			growth.influence = 3;
+		} else if(growth.expansion > 20) {
+			growth.influence = 2;
+		}
+	},
+
+	// Increases strength using the unspent growth
+	changeStrength: function(growth, amount) {
+		if(growth.unspent > 0) {
+			growth.strength += amount;
+			growth.unspent -= amount;
+		} else if(growth.unspent < 0) {
+			growth.strength -= amount;
+			growth.unspent += amount;
+		}
+	},
+
 	// Called after rest of frame has rendered
 	render: function() {
-		var debugText ="Player: (" + this.player.x + "," + this.player.y + ")";
-		this.game.debug.text(debugText, 10, 100);
+		this.game.debug.text(
+			"Player: Tile Count=" + this.player.tileCount +
+			" Expansion=" + this.player.growth.expansion +
+			" Strength=" + this.player.growth.strength +
+			" Unspent=" + this.player.growth.unspent, 10, 20);
+		this.game.debug.text(
+			"Enemy: Tile Count=" + this.enemy.tileCount +
+			" Expansion=" + this.enemy.growth.expansion +
+			" Strength=" + this.enemy.growth.strength +
+			" Unspent=" + this.enemy.growth.unspent, 10, 40);
 	}
 };

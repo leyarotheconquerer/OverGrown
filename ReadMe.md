@@ -15,7 +15,7 @@ Design
 + Game progresses in one second ticks
 + Player and enemy has one tile called the dedicated tile that may be moved to adjacent tiles
 + This tile has a range which considers tiles "near"
-* Adjacent tiles may be next to any owned tiles
+- Adjacent tiles may be next to any owned tiles
 
 + Tiles have types, grass, weed, neutral, dung, water, and cat tail.
 + A tile has a conviction total of 5
@@ -27,10 +27,10 @@ Design
 	- The rate of conversion is sqrt(enemy.strength - player.strength)
 + Water cannot be grown on
 
-* Growth points may be dedicated towards expansion or strength, only added to expansion or strength once (suject to play testing)
-* Every 10 tiles in ownership increase growth points by 1
-* Every dung tile increases growth points by 1
-* Every tile adjacent to water increases growth points by 1
++ Growth points may be dedicated towards expansion or strength, only added to expansion or strength once (suject to play testing)
++ Every 10 tiles in ownership increase growth points by 1
++ Every dung tile increases growth points by 1
++ Every tile adjacent to water increases growth points by 1
 
 * Cat tails taken into ownership provide a one time use bonus
 * This bonus is used on command
