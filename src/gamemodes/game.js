@@ -48,6 +48,44 @@ OverGrown.Game = function() {
 
 // Define the member functions of the game state
 OverGrown.Game.prototype = {
+	reset: function() {
+		this.player = {
+			x: 0,
+			y: 0,
+			targetX: 0,
+			targetY: 0,
+			sprite: null,
+			tileCount: 1,
+			identity: 'grass',
+			growth: {
+				unspent: 1,
+				expansion: 1,
+				strength: 1,
+				influence: 1,
+				cattail: 0
+			}
+		};
+
+		this.enemy = {
+			x: 0,
+			y: 0,
+			targetX: 0,
+			targetY: 0,
+			tileCount: 1,
+			sprite: null,
+			targetSprite: null,
+			identity: 'weed',
+			waitCounter: 0,
+			growth: {
+				unspent: 1,
+				expansion: 1,
+				strength: 1,
+				influence: 1,
+				cattail: 0
+			}
+		};
+	},
+
 	// Loads system resources
 	preload: function() {
 		this.game.load.image('tiles', 'assets/Tiles.png');
@@ -72,6 +110,7 @@ OverGrown.Game.prototype = {
 
 	// Creates objects for this state
 	create: function() {
+		this.reset();
 		// Set up input listeners
 		this.game.input.addMoveCallback(this.updateTarget, this);
 		this.game.input.activePointer.leftButton.onDown.add(this.onLeftMouseDown, this);
@@ -232,6 +271,7 @@ OverGrown.Game.prototype = {
 		this.updateDedicated();
 		this.updateEnemy();
 		this.updateTiles();
+		this.checkEndGame();
 		this.player.sprite.bringToTop();
 	},
 
@@ -630,6 +670,41 @@ OverGrown.Game.prototype = {
 					timer.add(1000, function(thingy) {thingy.kill();}, this, text);
 					timer.start();
 				}
+			}
+		}
+	},
+
+	// Checks to see if the game has been lost or won
+	checkEndGame: function() {
+		// Check for loss
+		var tile = this.tilemap.getTile(this.player.x, this.player.y, this.groundLayer);
+		if(tile.conviction.current == 'weed' && this.player.growth.strength < this.enemy.growth.strength) {
+			var nearTiles = this.getNearTiles(this.player.x, this.player.y, this.player.growth.influence);
+			var lost = true;
+			for(var i = 0; i < nearTiles.length; ++i) {
+				var nearTile = nearTiles[i];
+				if(nearTile.conviction.current != 'weed' && !(nearTile.contains.water)) {
+					lost = false;
+				}
+			}
+			if(lost) {
+				this.state.start('Lose');
+			}
+		}
+
+		// Check for victory
+		tile = this.tilemap.getTile(this.enemy.x, this.enemy.x, this.groundLayer);
+		if(tile.conviction.current == 'grass' && this.player.growth.strength > this.enemy.growth.strength) {
+			var nearTiles = this.getNearTiles(this.enemy.x, this.enemy.y, this.enemy.growth.influence);
+			var win = true;
+			for(var i = 0; i < nearTiles.length; ++i) {
+				var nearTile = nearTiles[i];
+				if(nearTile.conviction.current != 'grass' && !(nearTile.contains.water)) {
+					win = false;
+				}
+			}
+			if(win) {
+				this.state.start('Win');
 			}
 		}
 	},
