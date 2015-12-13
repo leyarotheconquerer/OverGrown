@@ -220,6 +220,7 @@ OverGrown.Game.prototype = {
 	tick: function() {
 		console.log("tick")
 		this.updateDedicated();
+		this.updateEnemy();
 		this.updateTiles();
 		this.player.sprite.bringToTop();
 	},
@@ -237,27 +238,175 @@ OverGrown.Game.prototype = {
 	// Updates the dedicated tile
 	updateDedicated: function() {
 		if(this.player.x != this.player.targetX || this.player.y != this.player.targetY) {
-			var nextx = this.player.x;
-			var nexty = this.player.y;
-			if(this.player.x < this.player.targetX && this.player.x < this.groundLayer.width) {
-				nextx = this.player.x + 1;
-			} else if(this.player.x > this.player.targetX && this.player.x > 0) {
-				nextx = this.player.x - 1;
-			}
-			if(this.player.y < this.player.targetY && this.player.y < this.groundLayer.height) {
-				nexty = this.player.y + 1;
-			} else if(this.player.y > this.player.targetY && this.player.y > 0) {
-				nexty = this.player.y - 1;
-			}
+			var nextPos = this.pathTowards(
+				this.player.x,
+				this.player.y,
+				this.player.targetX,
+				this.player.targetY,
+				'grass'
+			);
+			var tile = this.tilemap.getTile(nextPos.x, nextPos.y, this.groundLayer);
+			this.player.x = nextPos.x;
+			this.player.y = nextPos.y;
+			console.log(nextPos.x + ", " + nextPos.y + " -> " + this.player.targetX + ", " + this.player.targetY);
+			var tween = this.game.add.tween(this.player.sprite);
+			tween.to({x: tile.worldX, y: tile.worldY}, 200, 'Linear', true, 0);
+			//}
+		}
+	},
 
-			var tile = this.tilemap.getTile(nextx, nexty, this.groundLayer, true);
-			if(tile.conviction.current == 'grass') {
-				this.player.x = nextx;
-				this.player.y = nexty;
-				var tween = this.game.add.tween(this.player.sprite);
-				tween.to({x: tile.worldX, y: tile.worldY}, 200, 'Linear', true, 0);
+	// Updates the enemy action tile
+	updateEnemy: function() {
+		var viewedTiles = this.getNearTiles(this.enemy.x, this.enemy.y, 6);
+		var targetTile = null; var priority = 0;
+		for(var i = 0; i < viewedTiles.length; ++i) {
+			var tile = viewedTiles[i];
+			// Weed's heirarchy of needs: +/- random urges
+			if(tile.contains.cattail && priority < 4 && this.game.rnd.integerInRange(0, 100) < 90) {
+				targetTile = tile;
+				pritority = 4;
+			} else if(tile.index.water && priority < 3 && this.game.rnd.integerInRange(0, 100) < 80) {
+				targetTile = tile;
+				pritority = 3;
+			} else if(tile.contains.dung && priority < 2 && this.game.rnd.integerInRange(0, 100) < 70) {
+				targetTile = tile;
+				pritority = 2;
+			} else if(tile.conviction.grass > 0 && priority < 1 && this.game.rnd.integerInRange(0, 100) < 60) {
+				targetTile = tile;
+				pritority = 1;
 			}
 		}
+		if(targetTile == null) {
+			targetTile = viewedTiles[this.game.rnd.integerInRange(0, viewedTiles.length-1)];
+		}
+		var nextPos = this.pathTowards(this.enemy.x, this.enemy.y, targetTile.x, targetTile.y, 'weed');
+		this.enemy.x = nextPos.x;
+		this.enemy.y = nextPos.y;
+	},
+
+	// Returns the next tile towards the given target with the given conviction
+	pathTowards: function(x, y, targetX, targetY, conviction) {
+		var next = {x: 0, y: 0};
+		var delta = {
+			x: targetX - x,
+			y: targetY - y
+		};
+		var offset = {
+			x: (x < targetX ? 1 : -1),
+			y: (y < targetY ? 1 : -1)
+		};
+		var tile;
+		if(Math.abs(delta.x) < Math.abs(delta.y)) {
+			if(Math.abs(3 * delta.x) < Math.abs(delta.y)) { // vertical
+				tile = this.tilemap.getTile(x, y + offset.y, this.groundLayer);
+				if(tile != null && tile.conviction.current == conviction) {
+					next.x = tile.x;
+					next.y = tile.y;
+				} else {
+					tile = this.tilemap.getTile(x + offset.x, y + offset.y, this.groundLayer);
+					if(tile != null && tile.conviction.current == conviction) {
+						next.x = tile.x;
+						next.y = tile.y;
+					} else {
+						tile = this.tilemap.getTile(x - offset.x, y + offset.y, this.groundLayer);
+						if(tile != null && tile.conviction.current == conviction) {
+							next.x = tile.x;
+							next.y = tile.y;
+						} else {
+							next.x = x;
+							next.y = y;
+						}
+					}
+				}
+			} else { // diagonal
+				tile = this.tilemap.getTile(x + offset.x, y + offset.y, this.groundLayer);
+				if(tile != null && tile.conviction.current == conviction) {
+					next.x = tile.x;
+					next.y = tile.y;
+				} else {
+					tile = this.tilemap.getTile(x, y + offset.y, this.groundLayer);
+					if(tile != null && tile.conviction.current == conviction) {
+						next.x = tile.x;
+						next.y = tile.y;
+					} else {
+						tile = this.tilemap.getTile(x + offset.x, y, this.groundLayer);
+						if(tile != null && tile.conviction.current == conviction) {
+							next.x = tile.x;
+							next.y = tile.y;
+						} else {
+							next.x = x;
+							next.y = y;
+						}
+					}
+				}
+			}
+		} else if (Math.abs(delta.x) > Math.abs(delta.y)) {
+			if(Math.abs(3 * delta.y) < Math.abs(delta.x)) { // horizontal
+				tile = this.tilemap.getTile(x + offset.x, y, this.groundLayer);
+				if(tile != null && tile.conviction.current == conviction) {
+					next.x = tile.x;
+					next.y = tile.y;
+				} else {
+					tile = this.tilemap.getTile(x + offset.x, y + offset.y, this.groundLayer);
+					if(tile != null && tile.conviction.current == conviction) {
+						next.x = tile.x;
+						next.y = tile.y;
+					} else {
+						tile = this.tilemap.getTile(x + offset.x, y - offset.y, this.groundLayer);
+						if(tile != null && tile.conviction.current == conviction) {
+							next.x = tile.x;
+							next.y = tile.y;
+						} else {
+							next.x = x;
+							next.y = y;
+						}
+					}
+				}
+			} else { // diagonal
+				tile = this.tilemap.getTile(x + offset.x, y + offset.y, this.groundLayer);
+				if(tile != null && tile.conviction.current == conviction) {
+					next.x = tile.x;
+					next.y = tile.y;
+				} else {
+					tile = this.tilemap.getTile(x + offset.x, y, this.groundLayer);
+					if(tile != null && tile.conviction.current == conviction) {
+						next.x = tile.x;
+						next.y = tile.y;
+					} else {
+						tile = this.tilemap.getTile(x, y + offset.y, this.groundLayer);
+						if(tile != null && tile.conviction.current == conviction) {
+							next.x = tile.x;
+							next.y = tile.y;
+						} else {
+							next.x = x;
+							next.y = y;
+						}
+					}
+				}
+			}
+		} else { // diagonal
+			tile = this.tilemap.getTile(x + offset.x, y + offset.y, this.groundLayer);
+			if(tile != null && tile.conviction.current == conviction) {
+				next.x = tile.x;
+				next.y = tile.y;
+			} else {
+				tile = this.tilemap.getTile(x + offset.x, y, this.groundLayer);
+				if(tile != null && tile.conviction.current == conviction) {
+					next.x = tile.x;
+					next.y = tile.y;
+				} else {
+					tile = this.tilemap.getTile(x, y + offset.y, this.groundLayer);
+					if(tile != null && tile.conviction.current == conviction) {
+						next.x = tile.x;
+						next.y = tile.y;
+					} else {
+						next.x = x;
+						next.y = y;
+					}
+				}
+			}
+		}
+		return next;
 	},
 
 	// Updates the properties of all tiles
