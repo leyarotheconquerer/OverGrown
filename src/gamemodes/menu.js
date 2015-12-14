@@ -24,7 +24,7 @@ OverGrown.Menu.prototype = {
 	// Frame update function
 	update: function() {
 		if(this.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
-			this.state.start('Game');
+			this.state.start('Learn');
 		}
 	}
 };
