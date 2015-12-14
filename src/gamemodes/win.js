@@ -7,13 +7,13 @@ OverGrown.Win = function() {
 OverGrown.Win.prototype = {
 	// Loads system resources
 	preload: function() {
-		this.game.load.image("title", "assets/Title.png");
+		this.game.load.image("win", "assets/Win.png");
 	},
 
 	// Creates objects for this state
 	create: function() {
-		this.stage.backgroundColor = '#00ff00';
-		//this.game.add.sprite(0,0,"title");
+		this.stage.backgroundColor = '#9f9f9f';
+		this.game.add.sprite(0,0,"win");
 		var text = this.game.add.text(0, 0, "Press Spacebar to Play Again", {
 			font: 'bold 20pt Arial',
 			boundsAlignH: 'center',

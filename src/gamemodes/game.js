@@ -238,7 +238,7 @@ OverGrown.Game.prototype = {
 
 	// Constructs the level
 	constructLevel: function() {
-		this.game.stage.backgroundColor = '#ff0000';
+		this.stage.backgroundColor = '#9f9f9f';
 		// Create an empty tile map
 		this.tilemap = this.game.add.tilemap();
 		this.tilemap.addTilesetImage('tiles');
@@ -808,7 +808,7 @@ OverGrown.Game.prototype = {
 		// Check for loss
 		var tile = this.tilemap.getTile(this.player.x, this.player.y, this.groundLayer, true);
 		if(tile != null && tile.conviction.current == 'weed') {
-			var nearTiles = this.getNearTiles(this.player.x, this.player.y, this.player.growth.influence);
+			var nearTiles = this.getAdjacentTiles(this.player.x, this.player.y);
 			var lost = true;
 			for(var i = 0; i < nearTiles.length; ++i) {
 				var nearTile = nearTiles[i];
@@ -822,9 +822,9 @@ OverGrown.Game.prototype = {
 		}
 
 		// Check for victory
-		tile = this.tilemap.getTile(this.enemy.x, this.enemy.x, this.groundLayer, true);
+		tile = this.tilemap.getTile(this.enemy.x, this.enemy.y, this.groundLayer, true);
 		if(tile != null && tile.conviction.current == 'grass') {
-			var nearTiles = this.getNearTiles(this.enemy.x, this.enemy.y, this.enemy.growth.influence);
+			var nearTiles = this.getAdjacentTiles(this.enemy.x, this.enemy.y);
 			var win = true;
 			for(var i = 0; i < nearTiles.length; ++i) {
 				var nearTile = nearTiles[i];
@@ -905,6 +905,22 @@ OverGrown.Game.prototype = {
 		var adjacentTiles = [];
 		{
 			var adjTile = this.tilemap.getTile(x-1, y, this.groundLayer, true);
+			if(adjTile != null) { adjacentTiles.push(adjTile); };
+		}
+		{
+			var adjTile = this.tilemap.getTile(x-1, y-1, this.groundLayer, true);
+			if(adjTile != null) { adjacentTiles.push(adjTile); };
+		}
+		{
+			var adjTile = this.tilemap.getTile(x-1, y+1, this.groundLayer, true);
+			if(adjTile != null) { adjacentTiles.push(adjTile); };
+		}
+		{
+			var adjTile = this.tilemap.getTile(x+1, y-1, this.groundLayer, true);
+			if(adjTile != null) { adjacentTiles.push(adjTile); };
+		}
+		{
+			var adjTile = this.tilemap.getTile(x+1, y+1, this.groundLayer, true);
 			if(adjTile != null) { adjacentTiles.push(adjTile); };
 		}
 		{
