@@ -143,7 +143,6 @@ OverGrown.Game.prototype = {
 				}
 			}
 		};
-		this.game.rnd.sow([27, 543, 5]);
 	},
 
 	// Creates objects for this state
